@@ -216,14 +216,14 @@ LABEL_CHACHA: bytes = b"fortress-v3-chacha20poly1305-key"
 LABEL_AES:    bytes = b"fortress-v3-aes256gcm-cipher-key"
 LABEL_HMAC:   bytes = b"fortress-v3-hmac-sha512-auth-key"
 
-# SAS word list (256 words for 4×2-byte = 64-bit fingerprint display)
 # SAS word list — 224 unique words (entropy: 4 × log2(224) ≈ 30.8 bits)
-# All words verified unique; duplicates from v8.2 replaced:
+# All words verified unique; duplicates replaced:
 #   'mike'(×2)  → second replaced with 'morse'
 #   'victor'(×2)→ second replaced with 'vane'
 #   'xray'(×2)  → second replaced with 'xylem'
 #   'queen'(×2) → second replaced with 'quay'
-#   'urn'(×2)   → second replaced with 'ulna'
+#   'urn'       → replaced with 'ulna' (row 249) and 'orb' (row 255)
+#   'chip','dune','etch','fen','gust','hilt','iris'(×2) → row 250 deduplicated
 _SAS_WORDS: list[str] = [
     "alpha","bravo","charlie","delta","echo","foxtrot","golf","hotel",
     "india","juliet","kilo","lima","mike","november","oscar","papa",
@@ -247,12 +247,12 @@ _SAS_WORDS: list[str] = [
     "bench","cork","dale","elm","fawn","gate","horn","isle",
     "jolt","kelp","lark","moor","nest","onyx","plum","reed",
     "sage","teak","ulna","vine","whirl","yak","zest","apex",      # was: urn→ulna
-    "barn","chip","dune","etch","fen","gust","hilt","iris",
+    "barn","drab","fume","glow","hulk","lair","meld","numb",
     "josh","kiln","limb","myth","noon","ode","peat","rook",
     "silt","tuft","udder","volt","wax","yore","zero","atlas",
     "birch","crest","drop","earl","flap","grip","hive","icon",
     "jibe","knob","lull","mace","nook","opus","perch","rack",
-    "slab","tern","urn","vow","wisp","yarn","zeal","anvil",
+    "slab","tern","orb","vow","wisp","yarn","zeal","anvil",
 ]
 
 
@@ -356,8 +356,7 @@ def secure_delete(path: Path) -> None:
 
 def _zero_bytes(buf: bytearray) -> None:
     """Fills a bytearray with zeros in-place (key zeroization)."""
-    for i in range(len(buf)):
-        buf[i] = 0
+    buf[:] = b"\x00" * len(buf)
 
 
 def _sas_fingerprint(shared_secret: bytes) -> str:
@@ -1316,7 +1315,7 @@ class FileServer:
                         _rate_limiter.record_failure(client_ip)
                         raise
                     self.on_sas(sas)
-                    self._receive_file(conn, keys)
+                    self._receive_file(conn, keys, client_ip)
         except OSError as exc:
             if self._stop_event.is_set():
                 self.on_progress(0.0, "[ HALTED ]  Channel closed.")
@@ -1358,7 +1357,8 @@ class FileServer:
         self.on_progress(0.16, f"[ SECURE ]  PFS ACTIVE  ◈ SAS: {sas}")
         return keys, sas
 
-    def _receive_file(self, conn: socket.socket, keys: SessionKeys) -> None:
+    def _receive_file(self, conn: socket.socket, keys: SessionKeys,
+                      client_ip: str = "unknown") -> None:
         fname_size = struct.unpack(HEADER_FORMAT, _recv_exact(conn, HEADER_SIZE))[0]
         if not 1 <= fname_size <= 4096:
             raise NetworkError(f"Bad filename length: {fname_size}")
@@ -1428,7 +1428,7 @@ class FileServer:
             size_b=len(plaintext),
             duration_s=round(time.monotonic() - t0, 3),
             status="OK",
-            peer=self.host,
+            peer=client_ip,
             note="BAR" if burn else "",
         ))
 
@@ -1984,9 +1984,6 @@ class WormholeManager:
             shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
-# ===========================================================================
-# GUI — P2P Fortress v7.0
-# ===========================================================================
 # ===========================================================================
 # GUI — P2P Fortress v13.0
 # New: Sidebar nav · Settings persistence · Toast system · Recent files ·
@@ -3363,7 +3360,7 @@ class App(ctk.CTk):
         ctk.CTkLabel(tf, text="Ultra-Secure Peer-to-Peer File Transfer System",
             font=ctk.CTkFont(family="Courier New", size=12),
             text_color=MIL_TAN).grid(row=1, column=0)
-        ctk.CTkLabel(tf, text="Version 8.0  //  CLASSIFICATION: CRYPTO-GRADE+",
+        ctk.CTkLabel(tf, text="Version 13.0  //  CLASSIFICATION: CRYPTO-GRADE+",
             font=ctk.CTkFont(family="Courier New", size=10),
             text_color=MIL_AMBER).grid(row=2, column=0, pady=(2, 14))
 
@@ -3599,11 +3596,6 @@ class App(ctk.CTk):
                      secret: str, original: Path | None,
                      is_bundle: bool = False) -> None:
         try:
-            try:
-                socket.getaddrinfo(client.host, client.port, proto=socket.IPPROTO_TCP)
-            except socket.gaierror as exc:
-                self._err_thread("ADDRESS ERROR", exc)
-                return
             client.send(fp, secret)
             if original:
                 self._push_recent(original)
@@ -4051,4 +4043,4 @@ def main() -> None:
 if __name__ == "__main__":
     main()
 
-# End of p2p_fortress_v11.py
+# End of p2p_fortress_v13.py
