@@ -146,6 +146,7 @@ import subprocess
 import tempfile
 import threading
 import time
+import secrets
 import tkinter as _tk
 import zipfile
 from dataclasses import dataclass, field
@@ -2070,7 +2071,7 @@ _DEFAULT_SETTINGS: dict = {
     "lan_discovery":         True,
     "recent_files":          [],   # list[str] — last 8 paths
     "favorite_peers":        [],   # list[{name, ip, port}]
-    "window_geometry":       "980x840",
+    "window_geometry":       "780x640",
 }
 
 
@@ -2141,9 +2142,9 @@ class App(ctk.CTk):
             self._is_dark = True
 
         self.title("▣  P2P FORTRESS  v14.0  —  CLASSIFIED TRANSFER SYSTEM")
-        self.geometry(self._cfg.get("window_geometry", "980x840"))
+        self.geometry(self._cfg.get("window_geometry", "780x640"))
         self.resizable(True, True)
-        self.minsize(820, 680)
+        self.minsize(660, 520)
         ctk.set_default_color_theme("blue")
         self.configure(fg_color=MIL_BG)
 
@@ -2184,6 +2185,9 @@ class App(ctk.CTk):
         self._lan_update_job:   str | None               = None
         self._last_idle_reset:  float                    = 0.0   # throttle <Motion>
         self._last_progress_t:  float                    = 0.0   # throttle progress cb
+        self._timer_start:      float | None             = None  # live elapsed timer
+        self._timer_job:        str | None               = None  # after() handle
+        self._elapsed_lbl:      ctk.CTkLabel | None      = None  # set in _build_status_bar
 
         # settings widget references (built in _build_settings_page)
         self._cfg_port_var:    ctk.StringVar  = ctk.StringVar(value=str(self._cfg["default_port"]))
@@ -2207,6 +2211,7 @@ class App(ctk.CTk):
         self._reset_idle()
         self._setup_dnd()
         self._navigate("send")
+        self._setup_shortcuts()
 
         if self._cfg["lan_discovery"]:
             self._start_lan_discovery()
@@ -2219,25 +2224,25 @@ class App(ctk.CTk):
 
     def _build_sidebar(self) -> None:
         # Outer fixed-width container (never scrolls)
-        outer = ctk.CTkFrame(self, fg_color=MIL_CARD, corner_radius=0, width=220)
+        outer = ctk.CTkFrame(self, fg_color=MIL_CARD, corner_radius=0, width=160)
         outer.grid(row=0, column=0, sticky="nsew")
         outer.grid_propagate(False)
         outer.grid_columnconfigure(0, weight=1)
         outer.grid_rowconfigure(1, weight=1)   # scrollable nav stretches vertically
 
         # ── Logo (fixed, top) ─────────────────────────────────────────────
-        logo = ctk.CTkFrame(outer, fg_color=MIL_CARD2, corner_radius=0, height=62)
+        logo = ctk.CTkFrame(outer, fg_color=MIL_CARD2, corner_radius=0, height=46)
         logo.grid(row=0, column=0, sticky="ew")
         logo.grid_propagate(False)
         logo.grid_columnconfigure(0, weight=1)
         ctk.CTkLabel(logo, text="▣  FORTRESS",
-                     font=ctk.CTkFont(family="Courier New", size=15, weight="bold"),
+                     font=ctk.CTkFont(family="Courier New", size=12, weight="bold"),
                      text_color=MIL_GREEN_LT, anchor="w"
-                     ).grid(row=0, column=0, sticky="w", padx=16, pady=(12, 1))
-        ctk.CTkLabel(logo, text="  v14.0  //  CRYPTO-GRADE+",
-                     font=ctk.CTkFont(family="Courier New", size=8),
+                     ).grid(row=0, column=0, sticky="w", padx=12, pady=(7, 0))
+        ctk.CTkLabel(logo, text="  v14.0  CRYPTO-GRADE+",
+                     font=ctk.CTkFont(family="Courier New", size=7),
                      text_color=MIL_AMBER, anchor="w"
-                     ).grid(row=1, column=0, sticky="w", padx=16, pady=(0, 10))
+                     ).grid(row=1, column=0, sticky="w", padx=12, pady=(0, 6))
 
         # ── Scrollable nav area ───────────────────────────────────────────
         # CTkScrollableFrame adds a thin scrollbar on the right; it only
@@ -2303,12 +2308,12 @@ class App(ctk.CTk):
     def _sb_nav_btn(self, page: str) -> None:
         label = next(lbl for key, lbl in _NAV if key == page)
         btn = ctk.CTkButton(
-            self._sb, text=label, anchor="w", height=33,
+            self._sb, text=label, anchor="w", height=26,
             fg_color="transparent", hover_color=MIL_CARD2,
-            font=ctk.CTkFont(family="Courier New", size=11, weight="bold"),
-            text_color=MIL_TAN, corner_radius=6,
+            font=ctk.CTkFont(family="Courier New", size=10, weight="bold"),
+            text_color=MIL_TAN, corner_radius=4,
             command=lambda p=page: self._navigate(p))
-        btn.grid(row=self._sb_row, column=0, sticky="ew", padx=6, pady=1)
+        btn.grid(row=self._sb_row, column=0, sticky="ew", padx=4, pady=1)
         self._nav_btns[page] = btn
         self._sb_row += 1
 
@@ -2326,15 +2331,15 @@ class App(ctk.CTk):
 
         # page title bar
         self._page_title_frame = ctk.CTkFrame(
-            self._main, fg_color=MIL_PANEL, corner_radius=0, height=40)
+            self._main, fg_color=MIL_PANEL, corner_radius=0, height=34)
         self._page_title_frame.grid(row=0, column=0, sticky="ew")
         self._page_title_frame.grid_propagate(False)
         self._page_title_frame.grid_columnconfigure(0, weight=1)
         self._page_title_lbl = ctk.CTkLabel(
             self._page_title_frame, text="",
-            font=ctk.CTkFont(family="Courier New", size=12, weight="bold"),
+            font=ctk.CTkFont(family="Courier New", size=11, weight="bold"),
             text_color=MIL_TAN, anchor="w")
-        self._page_title_lbl.grid(row=0, column=0, sticky="w", padx=18, pady=9)
+        self._page_title_lbl.grid(row=0, column=0, sticky="w", padx=14, pady=7)
 
         # page container (stacked frames)
         self._page_container = ctk.CTkFrame(self._main, fg_color=MIL_BG, corner_radius=0)
@@ -2404,16 +2409,23 @@ class App(ctk.CTk):
                             border_color=MIL_OLIVE, border_width=1)
         bar.grid(row=2, column=0, sticky="ew")
         bar.grid_columnconfigure(0, weight=1)
+        bar.grid_columnconfigure(1, weight=0)
         bar.grid_rowconfigure(0, weight=1)
         bar.grid_rowconfigure(1, weight=1)
         self._status_lbl = ctk.CTkLabel(
             bar, text="[ SYSTEM READY ]  v14.0 — all systems nominal.",
-            font=ctk.CTkFont(family="Courier New", size=11),
+            font=ctk.CTkFont(family="Courier New", size=10),
             text_color=MIL_KHAKI, anchor="w")
-        self._status_lbl.grid(row=0, column=0, sticky="ew", padx=14, pady=(7, 2))
+        self._status_lbl.grid(row=0, column=0, sticky="ew", padx=12, pady=(5, 1))
+        # Live elapsed timer — shown during active transfers
+        self._elapsed_lbl = ctk.CTkLabel(
+            bar, text="",
+            font=ctk.CTkFont(family="Courier New", size=10, weight="bold"),
+            text_color=MIL_AMBER, anchor="e")
+        self._elapsed_lbl.grid(row=0, column=1, sticky="e", padx=(0, 12), pady=(5, 1))
         self._progress = ctk.CTkProgressBar(
-            bar, progress_color=MIL_GREEN_LT, fg_color=MIL_BG, height=8)
-        self._progress.grid(row=1, column=0, sticky="ew", padx=14, pady=(0, 7))
+            bar, progress_color=MIL_GREEN_LT, fg_color=MIL_BG, height=6)
+        self._progress.grid(row=1, column=0, columnspan=2, sticky="ew", padx=12, pady=(0, 5))
         self._progress.set(0)
 
     # ══════════════════════════════════════════════════════════════════════
@@ -2551,7 +2563,7 @@ class App(ctk.CTk):
         kw: dict = dict(placeholder_text=ph, fg_color=MIL_CARD, border_color=MIL_OLIVE,
                         text_color=MIL_TEXT, placeholder_text_color=MIL_MUTED,
                         font=ctk.CTkFont(family="Courier New", size=12),
-                        height=36, show=show)
+                        height=30, show=show)
         if var: kw["textvariable"] = var
         e = ctk.CTkEntry(parent, **kw)
         self._attach_entry_menu(e)
@@ -2624,13 +2636,37 @@ class App(ctk.CTk):
 
     @staticmethod
     def _btn(parent: ctk.CTkFrame, text: str, command: Callable,
-             w: int = 0, h: int = 34, color: str = MIL_OLIVE,
+             w: int = 0, h: int = 28, color: str = MIL_OLIVE,
              text_color: str = MIL_TEXT, hover: str = MIL_OLIVE_LT) -> ctk.CTkButton:
         kw: dict = dict(text=text, fg_color=color, hover_color=hover,
                         font=ctk.CTkFont(family="Courier New", weight="bold"),
                         command=command, height=h, text_color=text_color, corner_radius=5)
         if w: kw["width"] = w
         return ctk.CTkButton(parent, **kw)
+
+    def _gen_passphrase(self, entry: ctk.CTkEntry) -> None:
+        """Generates a secure random passphrase, fills the entry, and copies it."""
+        words = [secrets.choice(_SAS_WORDS) for _ in range(3)]
+        digits = str(secrets.randbelow(9000) + 1000)
+        pw = "-".join(words) + "-" + digits
+        entry.configure(show="")
+        entry.delete(0, "end")
+        entry.insert(0, pw)
+        entry.configure(show="•")
+        self.clipboard_clear()
+        self.clipboard_append(pw)
+        self._schedule_clipboard_clear()
+        self._toast("🎲  Passphrase generated & copied!", MIL_GREEN_LT)
+
+    def _pw_row(self, parent: ctk.CTkFrame, ph: str = "Enter passphrase…") -> ctk.CTkEntry:
+        """Returns a passphrase entry in a parent frame, with a 🎲 generator button."""
+        parent.grid_columnconfigure(0, weight=1)
+        e = self._ent(parent, ph, show="•")
+        e.grid(row=0, column=0, sticky="ew", padx=(0, 4), ipady=2)
+        self._btn(parent, "🎲", lambda en=e: self._gen_passphrase(en),
+                  w=30, h=30, color=MIL_CARD2, text_color=MIL_AMBER,
+                  hover=MIL_OLIVE).grid(row=0, column=1)
+        return e
 
     def _op_lock(self, *btns: ctk.CTkButton | None) -> None:
         """Disable buttons during an active operation. None entries are silently skipped."""
@@ -2672,10 +2708,12 @@ class App(ctk.CTk):
         self._send_file_entry.grid(row=0, column=0, sticky="ew", padx=(0, 8), ipady=2)
         self._btn(fr, "BROWSE", self._browse_send_file, w=90).grid(row=0, column=1)
 
-        ctk.CTkLabel(sf, text="  ↓  Drag & drop a file onto the window",
-                     font=ctk.CTkFont(family="Courier New", size=9),
-                     text_color=MIL_MUTED, anchor="w"
-                     ).grid(row=r, column=0, sticky="ew", padx=16); r += 1
+        # File preview info line
+        self._file_info_lbl = ctk.CTkLabel(
+            sf, text="  ↓  Drag & drop a file onto the window",
+            font=ctk.CTkFont(family="Courier New", size=9),
+            text_color=MIL_MUTED, anchor="w")
+        self._file_info_lbl.grid(row=r, column=0, sticky="ew", padx=16); r += 1
 
         # multi-file checkbox
         mf = ctk.CTkFrame(sf, fg_color="transparent")
@@ -2752,8 +2790,8 @@ class App(ctk.CTk):
 
         # ── Auth ──
         self._section_header(sf, r, "AUTHENTICATION", MIL_RED_LT); r += 2
-        self._send_secret = self._ent(sf, "Enter classified passphrase…", show="•")
-        self._send_secret.grid(row=r, column=0, sticky="ew", padx=16, ipady=2); r += 1
+        _pw_f = self._irow(sf, r, pady=(0, 2)); r += 1
+        self._send_secret = self._pw_row(_pw_f, "Enter classified passphrase…")
         self._send_secret.bind("<KeyRelease>",
             lambda e: self._update_strength(self._send_secret, self._send_strength))
         self._send_strength = ctk.CTkLabel(sf, text="", anchor="w",
@@ -2773,7 +2811,7 @@ class App(ctk.CTk):
                   ).grid(row=0, column=1)
 
         self._send_btn = self._btn(sf, "▲   ENCRYPT & TRANSMIT", self._on_send,
-                                    h=42, color=MIL_GREEN, hover=MIL_GREEN_LT)
+                                    h=34, color=MIL_GREEN, hover=MIL_GREEN_LT)
         self._send_btn.grid(row=r, column=0, sticky="ew", padx=16, pady=(10, 18))
 
     # ── Multi-file toggle ──────────────────────────────────────────────────
@@ -2909,8 +2947,8 @@ class App(ctk.CTk):
 
         self._section_header(sf, r, "AUTHENTICATION", MIL_RED_LT); r += 2
 
-        self._recv_secret = self._ent(sf, "Enter classified passphrase…", show="•")
-        self._recv_secret.grid(row=r, column=0, sticky="ew", padx=16, ipady=2); r += 1
+        _rpw_f = self._irow(sf, r, pady=(0, 2)); r += 1
+        self._recv_secret = self._pw_row(_rpw_f, "Enter classified passphrase…")
         self._recv_secret.bind("<KeyRelease>",
             lambda e: self._update_strength(self._recv_secret, self._recv_strength))
         self._recv_strength = ctk.CTkLabel(sf, text="", anchor="w",
@@ -2950,10 +2988,10 @@ class App(ctk.CTk):
         br = self._irow(sf, r, pady=(12, 18)); r += 1
         br.grid_columnconfigure(0, weight=1); br.grid_columnconfigure(1, weight=1)
         self._listen_btn = self._btn(br, "▼   OPEN CHANNEL", self._on_listen,
-                                      h=42, color=MIL_OLIVE, hover=MIL_OLIVE_LT)
+                                      h=34, color=MIL_OLIVE, hover=MIL_OLIVE_LT)
         self._listen_btn.grid(row=0, column=0, sticky="ew", padx=(0, 8))
         self._btn(br, "■   CLOSE CHANNEL", self._on_stop_server,
-                  h=42, color=MIL_CARD2, hover=MIL_RED, text_color=MIL_RED_LT
+                  h=34, color=MIL_CARD2, hover=MIL_RED, text_color=MIL_RED_LT
                   ).grid(row=0, column=1, sticky="ew")
 
     # ══════════════════════════════════════════════════════════════════════
@@ -2984,8 +3022,8 @@ class App(ctk.CTk):
 
         self._lbl(sf, "◉  SHARED PASSPHRASE").grid(
             row=r, column=0, sticky="w", padx=16, pady=(12, 3)); r += 1
-        self._wh_passphrase = self._ent(sf, "Enter shared passphrase…", show="•")
-        self._wh_passphrase.grid(row=r, column=0, sticky="ew", padx=16, ipady=2); r += 1
+        _whpw_f = self._irow(sf, r, pady=(0, 2)); r += 1
+        self._wh_passphrase = self._pw_row(_whpw_f, "Enter shared passphrase…")
         self._wh_passphrase.bind("<KeyRelease>",
             lambda e: self._update_strength(self._wh_passphrase, self._wh_strength))
         self._wh_strength = ctk.CTkLabel(sf, text="", anchor="w",
@@ -3075,8 +3113,8 @@ class App(ctk.CTk):
 
         self._section_header(sf, r, "PASSPHRASE", MIL_RED_LT); r += 2
 
-        self._local_secret = self._ent(sf, "Enter passphrase…", show="•")
-        self._local_secret.grid(row=r, column=0, sticky="ew", padx=16, ipady=2); r += 1
+        _lpw_f = self._irow(sf, r, pady=(0, 2)); r += 1
+        self._local_secret = self._pw_row(_lpw_f, "Enter passphrase…")
         self._local_secret.bind("<KeyRelease>",
             lambda e: self._update_strength(self._local_secret, self._local_strength))
         self._local_strength = ctk.CTkLabel(sf, text="", anchor="w",
@@ -3096,10 +3134,10 @@ class App(ctk.CTk):
         crf = self._irow(sf, r, pady=(14, 18)); r += 1
         crf.grid_columnconfigure(0, weight=1); crf.grid_columnconfigure(1, weight=1)
         self._local_enc_btn = self._btn(crf, "■   ENCRYPT", self._on_local_encrypt,
-                  h=42, color=MIL_OLIVE, hover=MIL_OLIVE_LT)
+                  h=34, color=MIL_OLIVE, hover=MIL_OLIVE_LT)
         self._local_enc_btn.grid(row=0, column=0, sticky="ew", padx=(0, 8))
         self._local_dec_btn = self._btn(crf, "■   DECRYPT", self._on_local_decrypt,
-                  h=42, color=MIL_GREEN, hover=MIL_GREEN_LT)
+                  h=34, color=MIL_GREEN, hover=MIL_GREEN_LT)
         self._local_dec_btn.grid(row=0, column=1, sticky="ew")
 
     # ══════════════════════════════════════════════════════════════════════
@@ -3571,6 +3609,24 @@ class App(ctk.CTk):
         self._send_files = []
         self._send_file_entry.delete(0, "end")
         self._send_file_entry.insert(0, str(path))
+        self._update_file_info(path)
+
+    def _update_file_info(self, path: Path | None) -> None:
+        """Updates the file preview label with size, extension, and mode info."""
+        lbl = getattr(self, "_file_info_lbl", None)
+        if lbl is None:
+            return
+        if path is None or not path.is_file():
+            lbl.configure(
+                text="  ↓  Drag & drop a file onto the window", text_color=MIL_MUTED)
+            return
+        size = path.stat().st_size
+        ext  = path.suffix.upper() or "FILE"
+        mode = "⚡ streaming" if size >= STREAM_THRESHOLD else "standard"
+        color = MIL_AMBER if size >= STREAM_THRESHOLD else MIL_GREEN_LT
+        lbl.configure(
+            text=f"  ▸  {ext}  |  {_format_size(size)}  |  {mode} mode",
+            text_color=color)
 
     def _browse_save_dir(self) -> None:
         d = filedialog.askdirectory(title="Select save directory")
@@ -4129,10 +4185,84 @@ class App(ctk.CTk):
                      MIL_OLIVE_LT if ratio > 0    else MIL_KHAKI)
         self._progress.configure(progress_color=bar_color)
         self._status_lbl.configure(text=msg, text_color=MIL_TEXT)
+        # Start / stop the live elapsed timer
+        if ratio > 0 and ratio < 1.0 and not is_err:
+            if self._timer_start is None:
+                self._timer_start = time.monotonic()
+                self._tick_timer()
+        elif ratio == 0 or ratio >= 1.0 or is_err:
+            self._timer_start = None
+            if self._timer_job:
+                self.after_cancel(self._timer_job)
+                self._timer_job = None
+            if self._elapsed_lbl:
+                self._elapsed_lbl.configure(text="")
+
+    def _tick_timer(self) -> None:
+        """Updates the elapsed-time label every second while a transfer runs."""
+        if self._timer_start is None or self._elapsed_lbl is None:
+            return
+        elapsed = int(time.monotonic() - self._timer_start)
+        m, s = divmod(elapsed, 60)
+        self._elapsed_lbl.configure(text=f"  ⏱ {m:02d}:{s:02d}")
+        self._timer_job = self.after(1000, self._tick_timer)
 
     # ══════════════════════════════════════════════════════════════════════
     # SHUTDOWN
     # ══════════════════════════════════════════════════════════════════════
+
+    # ══════════════════════════════════════════════════════════════════════
+    # KEYBOARD SHORTCUTS
+    # ══════════════════════════════════════════════════════════════════════
+
+    def _setup_shortcuts(self) -> None:
+        """Binds global keyboard shortcuts.
+
+        Ctrl+Enter : Encrypt & Transmit (send page) or Open Channel (recv page)
+        Ctrl+L     : Navigate to Receive page and start listening
+        Ctrl+O     : Open file browser for the active send file
+        Ctrl+G     : Generate passphrase for the currently active page
+        Escape     : Cancel active server / wormhole operation
+        """
+        self.bind("<Control-Return>", self._shortcut_send)
+        self.bind("<Control-l>",      self._shortcut_listen)
+        self.bind("<Control-o>",      self._shortcut_open_file)
+        self.bind("<Control-g>",      self._shortcut_gen_pass)
+        self.bind("<Escape>",         self._shortcut_cancel)
+
+    def _shortcut_send(self, _event: object = None) -> None:
+        if self._active_page == "send":
+            self._on_send()
+        elif self._active_page == "recv":
+            self._on_listen()
+
+    def _shortcut_listen(self, _event: object = None) -> None:
+        self._navigate("recv")
+        self._on_listen()
+
+    def _shortcut_open_file(self, _event: object = None) -> None:
+        if self._active_page in ("send", "wormhole"):
+            self._browse_send_file()
+
+    def _shortcut_gen_pass(self, _event: object = None) -> None:
+        entry_map = {
+            "send":     getattr(self, "_send_secret", None),
+            "recv":     getattr(self, "_recv_secret", None),
+            "wormhole": getattr(self, "_wh_passphrase", None),
+            "local":    getattr(self, "_local_secret", None),
+        }
+        entry = entry_map.get(self._active_page)
+        if entry:
+            self._gen_passphrase(entry)
+
+    def _shortcut_cancel(self, _event: object = None) -> None:
+        self._on_stop_server()
+        WormholeManager.STOP_SEND.set()
+        WormholeManager.STOP_RECEIVE.set()
+        self._toast("⛔  Operation cancelled", MIL_AMBER)
+        # Reset events immediately so next operations work
+        self.after(500, WormholeManager.STOP_SEND.clear)
+        self.after(500, WormholeManager.STOP_RECEIVE.clear)
 
     def on_closing(self) -> None:
         # Save window geometry
