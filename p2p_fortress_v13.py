@@ -1,5 +1,5 @@
 """
-P2P Fortress — Ultra-Secure File Transfer  v13.0
+P2P Fortress — Ultra-Secure File Transfer  v14.0
 ================================================
 © 2024 Moshe Pinchasi. All rights reserved.
 
@@ -8,6 +8,25 @@ This software is provided "as is", without warranty of any kind.
 The developer shall not be liable for any claim, damages or other
 liability arising from, out of or in connection with the software.
 Any misuse of this tool for illegal activities is strictly prohibited.
+
+New in v14.0 — Bug-fix & cleanup pass:
+  🔴 CRITICAL — Wormhole receive lost file extension: using
+               --output-file with a fixed "received.whfort" name meant
+               every file was saved without its original extension.
+               Fixed: wormhole now runs with cwd=tmp_dir (no
+               --output-file), preserving the original filename
+               (e.g. "document.pdf.whfort"). Stripping ".whfort" now
+               correctly restores "document.pdf".
+  🔧 MEDIUM  — Multi-file bundle not auto-extracted on receiver:
+               UI promised "unzipped on the receiver side" but code
+               only saved fortress_bundle.zip. Added Zip-Slip-guarded
+               auto-extraction into a "fortress_bundle/" subfolder with
+               collision-avoidance naming.
+  🧹 CLEANUP — _FNAME_RE regex compiled inside WormholeManager.receive()
+               on every call; moved to class-level constant.
+  ⚡ PERF    — _zero_bytes: replaced b"\x00" * len(buf) (creates an
+               immutable bytes copy) with bytearray(len(buf)) which
+               allocates zero-filled memory directly.
 
 New in v13.0 — Full Audit, Dead-Code Removal & Performance pass 2:
   🔴 CRITICAL — Double op_unlock in _worker_send: gaierror handler called
@@ -356,7 +375,7 @@ def secure_delete(path: Path) -> None:
 
 def _zero_bytes(buf: bytearray) -> None:
     """Fills a bytearray with zeros in-place (key zeroization)."""
-    buf[:] = b"\x00" * len(buf)
+    buf[:] = bytearray(len(buf))
 
 
 def _sas_fingerprint(shared_secret: bytes) -> str:
@@ -1408,9 +1427,43 @@ class FileServer:
             out.write_bytes(plaintext)
         except OSError as exc:
             raise NetworkError(f"Cannot write '{out}': {exc}") from exc
-        kb = len(plaintext) / 1024
-        self.on_progress(1.0, f"[ MISSION COMPLETE ]  {kb:.1f} KB → {out}")
-        logger.info("Received: %s (%d B)", out, len(plaintext))
+
+        # Auto-extract multi-file bundles (fortress_bundle.zip)
+        log_filename = filename
+        if filename == "fortress_bundle.zip":
+            bundle_dir = self.save_dir / "fortress_bundle"
+            counter = 1
+            while bundle_dir.exists():
+                bundle_dir = self.save_dir / f"fortress_bundle_{counter}"
+                counter += 1
+            try:
+                bundle_dir.mkdir()
+                with zipfile.ZipFile(out) as zf:
+                    resolved = bundle_dir.resolve()
+                    for member in zf.infolist():
+                        member_path = (bundle_dir / member.filename).resolve()
+                        try:
+                            member_path.relative_to(resolved)
+                        except ValueError:
+                            raise P2PError(
+                                f"Zip-Slip blocked: '{member.filename}' escapes destination."
+                            )
+                    zf.extractall(bundle_dir)
+                out.unlink()
+                log_filename = bundle_dir.name
+                self.on_progress(1.0,
+                    f"[ MISSION COMPLETE ]  Bundle extracted → {bundle_dir.name}/")
+                logger.info("Auto-extracted bundle → %s", bundle_dir)
+            except P2PError:
+                raise
+            except Exception as exc:
+                logger.warning("Bundle auto-extract failed: %s — keeping zip.", exc)
+                self.on_progress(1.0,
+                    f"[ MISSION COMPLETE ]  {len(plaintext)/1024:.1f} KB → {out.name}")
+        else:
+            kb = len(plaintext) / 1024
+            self.on_progress(1.0, f"[ MISSION COMPLETE ]  {kb:.1f} KB → {out}")
+        logger.info("Received: %s (%d B)", log_filename, len(plaintext))
         # Burn After Reading
         if burn:
             burn_delay = _history_cfg_get("burn_delay_sec", 60)
@@ -1424,7 +1477,7 @@ class FileServer:
         _history.add(TransferRecord(
             ts=datetime.datetime.now().isoformat(timespec="seconds"),
             direction="RECEIVED",
-            filename=filename,
+            filename=log_filename,
             size_b=len(plaintext),
             duration_s=round(time.monotonic() - t0, 3),
             status="OK",
@@ -1757,7 +1810,8 @@ class LocalEncryptor:
 class WormholeManager:
     """Orchestrates magic-wormhole with CryptoEngine pre-encryption."""
 
-    _CODE_RE = re.compile(r'\b(\d+(?:-[a-z]+){2,})\b')
+    _CODE_RE  = re.compile(r'\b(\d+(?:-[a-z]+){2,})\b')
+    _FNAME_RE = re.compile(r'written to[: ]+(.+)', re.IGNORECASE)
 
     STOP_SEND    = threading.Event()
     STOP_RECEIVE = threading.Event()
@@ -1876,17 +1930,19 @@ class WormholeManager:
         if not cls._CODE_RE.fullmatch(code):
             if not re.match(r'^[\w-]+$', code) or len(code) < 5:
                 raise ValueError(f"Invalid wormhole code: '{code}'")
-        tmp_dir  = Path(tempfile.mkdtemp(prefix="fortress_wh_"))
-        tmp_file = tmp_dir / "received.whfort"
+        tmp_dir = Path(tempfile.mkdtemp(prefix="fortress_wh_"))
         proc: subprocess.Popen | None = None
         try:
             on_progress(0.05, f"[ WORMHOLE ]  Connecting: {code}…")
             try:
+                # Run wormhole in tmp_dir so it saves the file there using the
+                # original filename (e.g. "document.pdf.whfort").  Do NOT use
+                # --output-file with a fixed name, which would lose the extension.
                 proc = subprocess.Popen(
-                    ["wormhole", "receive", "--accept-file",
-                     "--output-file", str(tmp_file), code],
+                    ["wormhole", "receive", "--accept-file", code],
                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                     text=True, bufsize=1,
+                    cwd=str(tmp_dir),
                 )
             except FileNotFoundError:
                 raise WormholeError("magic-wormhole not found. pip install magic-wormhole")
@@ -1911,8 +1967,7 @@ class WormholeManager:
                                              daemon=True)
             reader_thread.start()
 
-            _FNAME_RE = re.compile(r'written to[: ]+(.+)', re.IGNORECASE)
-            received_path: Path | None = None
+            received_name: str | None = None
             TIMEOUT = 120.0
             while True:
                 if cls.STOP_RECEIVE.is_set():
@@ -1927,9 +1982,9 @@ class WormholeManager:
                     break   # EOF
                 line = item.strip()
                 logger.debug("wh recv: %s", line)
-                m_name = _FNAME_RE.search(line)
+                m_name = cls._FNAME_RE.search(line)
                 if m_name:
-                    received_path = Path(m_name.group(1).strip())
+                    received_name = Path(m_name.group(1).strip()).name
                 low = line.lower()
                 if any(k in low for k in ("received file", "transfer complete", "wormhole closed")):
                     on_progress(0.60, "[ WORMHOLE ]  Download complete.")
@@ -1943,8 +1998,18 @@ class WormholeManager:
             except subprocess.TimeoutExpired:
                 proc.kill(); proc.wait()
                 raise WormholeError("wormhole receive did not exit.")
-            actual_file = received_path if (received_path and received_path.is_file()) else tmp_file
-            if not actual_file.is_file():
+
+            # Locate the downloaded file.  Prefer the name parsed from wormhole
+            # output; fall back to scanning tmp_dir for any file wormhole wrote.
+            actual_file: Path | None = None
+            if received_name:
+                candidate = tmp_dir / received_name
+                if candidate.is_file():
+                    actual_file = candidate
+            if actual_file is None:
+                files = [f for f in tmp_dir.iterdir() if f.is_file()]
+                actual_file = files[0] if files else None
+            if actual_file is None or not actual_file.is_file():
                 raise WormholeError("No file written after wormhole receive.")
             on_progress(0.65, "[ WORMHOLE ]  Decrypting…")
             raw = actual_file.read_bytes()
