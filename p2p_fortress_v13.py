@@ -2656,8 +2656,7 @@ class App(ctk.CTk):
         target.bind("<Button-3>", _show)
         target.bind("<Button-2>", _show)
 
-    @staticmethod
-    def _btn(parent: ctk.CTkFrame, text: str, command: Callable,
+    def _btn(self, parent: ctk.CTkFrame, text: str, command: Callable,
              w: int = 0, h: int = 28, color: str = MIL_OLIVE,
              text_color: str = MIL_TEXT, hover: str = MIL_OLIVE_LT) -> ctk.CTkButton:
         kw: dict = dict(text=text, fg_color=color, hover_color=hover,
