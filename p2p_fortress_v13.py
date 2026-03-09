@@ -146,6 +146,7 @@ import subprocess
 import tempfile
 import threading
 import time
+import tkinter as _tk
 import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -2050,7 +2051,7 @@ class WormholeManager:
 
 
 # ===========================================================================
-# GUI — P2P Fortress v13.0
+# GUI — P2P Fortress v14.0
 # New: Sidebar nav · Settings persistence · Toast system · Recent files ·
 #      Favorite peers · Multi-file send · Disabled buttons during ops ·
 #      Progress auto-reset · Tray icon support
@@ -2111,7 +2112,7 @@ _NAV: list[tuple[str, str]] = [
 # ===========================================================================
 class App(ctk.CTk):
     """
-    P2P Fortress v13.0
+    P2P Fortress v14.0
     =================
     Layout  : Sidebar (220px fixed) + Main content area (grid, weight=1)
     Nav     : Sidebar buttons show/hide CTkFrames — no CTkTabview
@@ -2139,7 +2140,7 @@ class App(ctk.CTk):
             ctk.set_appearance_mode("dark")
             self._is_dark = True
 
-        self.title("▣  P2P FORTRESS  v13.0  —  CLASSIFIED TRANSFER SYSTEM")
+        self.title("▣  P2P FORTRESS  v14.0  —  CLASSIFIED TRANSFER SYSTEM")
         self.geometry(self._cfg.get("window_geometry", "980x840"))
         self.resizable(True, True)
         self.minsize(820, 680)
@@ -2225,18 +2226,18 @@ class App(ctk.CTk):
         outer.grid_rowconfigure(1, weight=1)   # scrollable nav stretches vertically
 
         # ── Logo (fixed, top) ─────────────────────────────────────────────
-        logo = ctk.CTkFrame(outer, fg_color=MIL_CARD2, corner_radius=0, height=74)
+        logo = ctk.CTkFrame(outer, fg_color=MIL_CARD2, corner_radius=0, height=62)
         logo.grid(row=0, column=0, sticky="ew")
         logo.grid_propagate(False)
         logo.grid_columnconfigure(0, weight=1)
         ctk.CTkLabel(logo, text="▣  FORTRESS",
-                     font=ctk.CTkFont(family="Courier New", size=16, weight="bold"),
+                     font=ctk.CTkFont(family="Courier New", size=15, weight="bold"),
                      text_color=MIL_GREEN_LT, anchor="w"
-                     ).grid(row=0, column=0, sticky="w", padx=16, pady=(16, 2))
-        ctk.CTkLabel(logo, text="  v13.0  //  CRYPTO-GRADE+",
+                     ).grid(row=0, column=0, sticky="w", padx=16, pady=(12, 1))
+        ctk.CTkLabel(logo, text="  v14.0  //  CRYPTO-GRADE+",
                      font=ctk.CTkFont(family="Courier New", size=8),
                      text_color=MIL_AMBER, anchor="w"
-                     ).grid(row=1, column=0, sticky="w", padx=16, pady=(0, 14))
+                     ).grid(row=1, column=0, sticky="w", padx=16, pady=(0, 10))
 
         # ── Scrollable nav area ───────────────────────────────────────────
         # CTkScrollableFrame adds a thin scrollbar on the right; it only
@@ -2302,7 +2303,7 @@ class App(ctk.CTk):
     def _sb_nav_btn(self, page: str) -> None:
         label = next(lbl for key, lbl in _NAV if key == page)
         btn = ctk.CTkButton(
-            self._sb, text=label, anchor="w", height=38,
+            self._sb, text=label, anchor="w", height=33,
             fg_color="transparent", hover_color=MIL_CARD2,
             font=ctk.CTkFont(family="Courier New", size=11, weight="bold"),
             text_color=MIL_TAN, corner_radius=6,
@@ -2325,15 +2326,15 @@ class App(ctk.CTk):
 
         # page title bar
         self._page_title_frame = ctk.CTkFrame(
-            self._main, fg_color=MIL_PANEL, corner_radius=0, height=46)
+            self._main, fg_color=MIL_PANEL, corner_radius=0, height=40)
         self._page_title_frame.grid(row=0, column=0, sticky="ew")
         self._page_title_frame.grid_propagate(False)
         self._page_title_frame.grid_columnconfigure(0, weight=1)
         self._page_title_lbl = ctk.CTkLabel(
             self._page_title_frame, text="",
-            font=ctk.CTkFont(family="Courier New", size=13, weight="bold"),
+            font=ctk.CTkFont(family="Courier New", size=12, weight="bold"),
             text_color=MIL_TAN, anchor="w")
-        self._page_title_lbl.grid(row=0, column=0, sticky="w", padx=18, pady=12)
+        self._page_title_lbl.grid(row=0, column=0, sticky="w", padx=18, pady=9)
 
         # page container (stacked frames)
         self._page_container = ctk.CTkFrame(self._main, fg_color=MIL_BG, corner_radius=0)
@@ -2406,7 +2407,7 @@ class App(ctk.CTk):
         bar.grid_rowconfigure(0, weight=1)
         bar.grid_rowconfigure(1, weight=1)
         self._status_lbl = ctk.CTkLabel(
-            bar, text="[ SYSTEM READY ]  v13.0 — all systems nominal.",
+            bar, text="[ SYSTEM READY ]  v14.0 — all systems nominal.",
             font=ctk.CTkFont(family="Courier New", size=11),
             text_color=MIL_KHAKI, anchor="w")
         self._status_lbl.grid(row=0, column=0, sticky="ew", padx=14, pady=(7, 2))
@@ -2532,12 +2533,12 @@ class App(ctk.CTk):
 
     def _section_header(self, parent: ctk.CTkFrame, row: int, text: str,
                          color: str = MIL_AMBER) -> None:
-        ctk.CTkFrame(parent, fg_color=color, height=2
-                     ).grid(row=row, column=0, sticky="ew", padx=16, pady=(14, 0))
+        ctk.CTkFrame(parent, fg_color=color, height=1
+                     ).grid(row=row, column=0, sticky="ew", padx=16, pady=(10, 0))
         ctk.CTkLabel(parent, text=f"  {text}",
                      font=ctk.CTkFont(family="Courier New", size=10, weight="bold"),
                      text_color=color, anchor="w"
-                     ).grid(row=row+1, column=0, sticky="ew", padx=16, pady=(3, 6))
+                     ).grid(row=row+1, column=0, sticky="ew", padx=16, pady=(2, 4))
 
     @staticmethod
     def _lbl(parent: ctk.CTkFrame, text: str) -> ctk.CTkLabel:
@@ -2545,15 +2546,81 @@ class App(ctk.CTk):
                             font=ctk.CTkFont(family="Courier New", size=11, weight="bold"),
                             text_color=MIL_TAN, anchor="w")
 
-    @staticmethod
-    def _ent(parent: ctk.CTkFrame, ph: str, show: str = "",
+    def _ent(self, parent: ctk.CTkFrame, ph: str, show: str = "",
              var: ctk.StringVar | None = None) -> ctk.CTkEntry:
         kw: dict = dict(placeholder_text=ph, fg_color=MIL_CARD, border_color=MIL_OLIVE,
                         text_color=MIL_TEXT, placeholder_text_color=MIL_MUTED,
                         font=ctk.CTkFont(family="Courier New", size=12),
                         height=36, show=show)
         if var: kw["textvariable"] = var
-        return ctk.CTkEntry(parent, **kw)
+        e = ctk.CTkEntry(parent, **kw)
+        self._attach_entry_menu(e)
+        return e
+
+    def _attach_entry_menu(self, entry: ctk.CTkEntry) -> None:
+        """Attaches a right-click Cut / Copy / Paste / Select-All context menu."""
+        menu = _tk.Menu(self, tearoff=0,
+                        bg=MIL_CARD2, fg=MIL_TEXT,
+                        activebackground=MIL_OLIVE, activeforeground=MIL_TEXT,
+                        font=("Courier New", 10), relief="flat", bd=1)
+        menu.add_command(label="Cut",        command=lambda: entry.event_generate("<<Cut>>"))
+        menu.add_command(label="Copy",       command=lambda: entry.event_generate("<<Copy>>"))
+        menu.add_command(label="Paste",      command=lambda: entry.event_generate("<<Paste>>"))
+        menu.add_separator()
+        menu.add_command(label="Select All", command=lambda: entry.select_range(0, "end"))
+
+        def _show(event: object) -> None:
+            entry.focus_set()
+            try:
+                menu.tk_popup(getattr(event, "x_root", 0), getattr(event, "y_root", 0))
+            finally:
+                menu.grab_release()
+
+        # Bind on the internal tk.Entry for reliable event capture
+        target = getattr(entry, "_entry", entry)
+        target.bind("<Button-3>", _show)
+        target.bind("<Button-2>", _show)   # macOS secondary-click
+
+    def _attach_textbox_menu(self, tb: ctk.CTkTextbox) -> None:
+        """Attaches a right-click Copy / Select-All menu to a CTkTextbox."""
+        menu = _tk.Menu(self, tearoff=0,
+                        bg=MIL_CARD2, fg=MIL_TEXT,
+                        activebackground=MIL_OLIVE, activeforeground=MIL_TEXT,
+                        font=("Courier New", 10), relief="flat", bd=1)
+        menu.add_command(label="Copy",       command=lambda: tb.event_generate("<<Copy>>"))
+        menu.add_separator()
+        menu.add_command(label="Select All", command=lambda: (
+            tb.tag_add("sel", "1.0", "end")))
+
+        def _show(event: object) -> None:
+            try:
+                menu.tk_popup(getattr(event, "x_root", 0), getattr(event, "y_root", 0))
+            finally:
+                menu.grab_release()
+
+        target = getattr(tb, "_textbox", tb)
+        target.bind("<Button-3>", _show)
+        target.bind("<Button-2>", _show)
+
+    def _attach_label_copy_menu(self, lbl: ctk.CTkLabel, text: str) -> None:
+        """Right-click on any label row → copies its text to clipboard."""
+        menu = _tk.Menu(self, tearoff=0,
+                        bg=MIL_CARD2, fg=MIL_TEXT,
+                        activebackground=MIL_OLIVE, activeforeground=MIL_TEXT,
+                        font=("Courier New", 10), relief="flat", bd=1)
+        menu.add_command(label=f'Copy  \u201c{text}\u201d',
+                         command=lambda t=text: (
+                             self.clipboard_clear(), self.clipboard_append(t)))
+
+        def _show(event: object) -> None:
+            try:
+                menu.tk_popup(getattr(event, "x_root", 0), getattr(event, "y_root", 0))
+            finally:
+                menu.grab_release()
+
+        target = getattr(lbl, "_label", lbl)
+        target.bind("<Button-3>", _show)
+        target.bind("<Button-2>", _show)
 
     @staticmethod
     def _btn(parent: ctk.CTkFrame, text: str, command: Callable,
@@ -2706,7 +2773,7 @@ class App(ctk.CTk):
                   ).grid(row=0, column=1)
 
         self._send_btn = self._btn(sf, "▲   ENCRYPT & TRANSMIT", self._on_send,
-                                    h=50, color=MIL_GREEN, hover=MIL_GREEN_LT)
+                                    h=42, color=MIL_GREEN, hover=MIL_GREEN_LT)
         self._send_btn.grid(row=r, column=0, sticky="ew", padx=16, pady=(10, 18))
 
     # ── Multi-file toggle ──────────────────────────────────────────────────
@@ -2883,10 +2950,10 @@ class App(ctk.CTk):
         br = self._irow(sf, r, pady=(12, 18)); r += 1
         br.grid_columnconfigure(0, weight=1); br.grid_columnconfigure(1, weight=1)
         self._listen_btn = self._btn(br, "▼   OPEN CHANNEL", self._on_listen,
-                                      h=50, color=MIL_OLIVE, hover=MIL_OLIVE_LT)
+                                      h=42, color=MIL_OLIVE, hover=MIL_OLIVE_LT)
         self._listen_btn.grid(row=0, column=0, sticky="ew", padx=(0, 8))
         self._btn(br, "■   CLOSE CHANNEL", self._on_stop_server,
-                  h=50, color=MIL_CARD2, hover=MIL_RED, text_color=MIL_RED_LT
+                  h=42, color=MIL_CARD2, hover=MIL_RED, text_color=MIL_RED_LT
                   ).grid(row=0, column=1, sticky="ew")
 
     # ══════════════════════════════════════════════════════════════════════
@@ -3029,10 +3096,10 @@ class App(ctk.CTk):
         crf = self._irow(sf, r, pady=(14, 18)); r += 1
         crf.grid_columnconfigure(0, weight=1); crf.grid_columnconfigure(1, weight=1)
         self._local_enc_btn = self._btn(crf, "■   ENCRYPT", self._on_local_encrypt,
-                  h=50, color=MIL_OLIVE, hover=MIL_OLIVE_LT)
+                  h=42, color=MIL_OLIVE, hover=MIL_OLIVE_LT)
         self._local_enc_btn.grid(row=0, column=0, sticky="ew", padx=(0, 8))
         self._local_dec_btn = self._btn(crf, "■   DECRYPT", self._on_local_decrypt,
-                  h=50, color=MIL_GREEN, hover=MIL_GREEN_LT)
+                  h=42, color=MIL_GREEN, hover=MIL_GREEN_LT)
         self._local_dec_btn.grid(row=0, column=1, sticky="ew")
 
     # ══════════════════════════════════════════════════════════════════════
@@ -3107,7 +3174,9 @@ class App(ctk.CTk):
                     font=ctk.CTkFont(family="Courier New", size=10),
                     text_color=clr, anchor="w")
                 if w: kw2["width"] = w
-                ctk.CTkLabel(rf, **kw2).grid(row=0, column=col, sticky="ew", padx=4, pady=3)
+                lbl = ctk.CTkLabel(rf, **kw2)
+                lbl.grid(row=0, column=col, sticky="ew", padx=4, pady=3)
+                self._attach_label_copy_menu(lbl, txt)
 
     def _clear_history(self) -> None:
         if messagebox.askyesno("CLEAR HISTORY", "Delete all transfer history?"):
@@ -3151,6 +3220,7 @@ class App(ctk.CTk):
             "  ◈  Enter a target IP and port, then click RUN TESTS.\n\n"
             "  Tests: DNS resolution · TCP connect · Latency × 3 · LAN peers\n")
         self._diag_text.configure(state="disabled")
+        self._attach_textbox_menu(self._diag_text)
 
     def _run_diagnostics(self) -> None:
         ip = self._diag_ip.get().strip()
@@ -3975,6 +4045,7 @@ class App(ctk.CTk):
                              fg_color=MIL_CARD, text_color=MIL_TEXT)
         tb.grid(row=1, column=0, sticky="nsew", padx=14, pady=(0, 14))
         tb.insert("end", qr_str); tb.configure(state="disabled")
+        self._attach_textbox_menu(tb)
 
     def _schedule_clipboard_clear(self, ms: int | None = None) -> None:
         if ms is None:
@@ -4088,7 +4159,7 @@ class App(ctk.CTk):
             if job:
                 try: self.after_cancel(job)
                 except Exception: pass
-        logger.info("P2P Fortress v13.0 shutdown.")
+        logger.info("P2P Fortress v14.0 shutdown.")
         try:
             self.destroy()
         except Exception:
@@ -4099,7 +4170,7 @@ class App(ctk.CTk):
 # Entry Point
 # ---------------------------------------------------------------------------
 def main() -> None:
-    logger.info("P2P Fortress v13.0 starting.")
+    logger.info("P2P Fortress v14.0 starting.")
     app = App()
     app.protocol("WM_DELETE_WINDOW", app.on_closing)
     app.mainloop()
