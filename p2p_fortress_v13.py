@@ -2147,6 +2147,7 @@ class App(ctk.CTk):
         self.minsize(660, 520)
         ctk.set_default_color_theme("blue")
         self.configure(fg_color=MIL_BG)
+        self._init_fonts()
 
         # ── state ─────────────────────────────────────────────────────────
         self._send_file:        Path | None              = None
@@ -2217,6 +2218,27 @@ class App(ctk.CTk):
             self._start_lan_discovery()
 
     # ══════════════════════════════════════════════════════════════════════
+    # FONT CACHE — created once, reused by every widget
+    # ══════════════════════════════════════════════════════════════════════
+
+    def _init_fonts(self) -> None:
+        """Creates CTkFont objects once; all UI code references these."""
+        fam = "Courier New"
+        self._f7   = ctk.CTkFont(family=fam, size=7)
+        self._f8b  = ctk.CTkFont(family=fam, size=8,  weight="bold")
+        self._f9   = ctk.CTkFont(family=fam, size=9)
+        self._f10  = ctk.CTkFont(family=fam, size=10)
+        self._f10b = ctk.CTkFont(family=fam, size=10, weight="bold")
+        self._f11  = ctk.CTkFont(family=fam, size=11)
+        self._f11b = ctk.CTkFont(family=fam, size=11, weight="bold")
+        self._f12  = ctk.CTkFont(family=fam, size=12)
+        self._f12b = ctk.CTkFont(family=fam, size=12, weight="bold")
+        self._f16b = ctk.CTkFont(family=fam, size=16, weight="bold")
+        self._f22b = ctk.CTkFont(family=fam, size=22, weight="bold")
+        self._f8   = ctk.CTkFont(family=fam, size=8)
+        self._fb   = ctk.CTkFont(family=fam,           weight="bold")
+
+    # ══════════════════════════════════════════════════════════════════════
     # SIDEBAR
     # ══════════════════════════════════════════════════════════════════════
 
@@ -2236,11 +2258,11 @@ class App(ctk.CTk):
         logo.grid_propagate(False)
         logo.grid_columnconfigure(0, weight=1)
         ctk.CTkLabel(logo, text="▣  FORTRESS",
-                     font=ctk.CTkFont(family="Courier New", size=12, weight="bold"),
+                     font=self._f12b,
                      text_color=MIL_GREEN_LT, anchor="w"
                      ).grid(row=0, column=0, sticky="w", padx=12, pady=(7, 0))
         ctk.CTkLabel(logo, text="  v14.0  CRYPTO-GRADE+",
-                     font=ctk.CTkFont(family="Courier New", size=7),
+                     font=self._f7,
                      text_color=MIL_AMBER, anchor="w"
                      ).grid(row=1, column=0, sticky="w", padx=12, pady=(0, 6))
 
@@ -2286,7 +2308,7 @@ class App(ctk.CTk):
         self._theme_btn = ctk.CTkButton(
             bottom, text="🌓  LIGHT MODE", height=32,
             fg_color=MIL_BG, hover_color=MIL_CARD2,
-            font=ctk.CTkFont(family="Courier New", size=10, weight="bold"),
+            font=self._f10b,
             text_color=MIL_TAN, corner_radius=4, anchor="w",
             command=self._toggle_theme)
         self._theme_btn.grid(row=1, column=0, sticky="ew", padx=10, pady=(0, 10))
@@ -2300,7 +2322,7 @@ class App(ctk.CTk):
 
     def _sb_label(self, text: str) -> None:
         ctk.CTkLabel(self._sb, text=f"  {text}",
-                     font=ctk.CTkFont(family="Courier New", size=8, weight="bold"),
+                     font=self._f8b,
                      text_color=MIL_MUTED, anchor="w"
                      ).grid(row=self._sb_row, column=0, sticky="ew", padx=4, pady=(4, 1))
         self._sb_row += 1
@@ -2310,7 +2332,7 @@ class App(ctk.CTk):
         btn = ctk.CTkButton(
             self._sb, text=label, anchor="w", height=26,
             fg_color="transparent", hover_color=MIL_CARD2,
-            font=ctk.CTkFont(family="Courier New", size=10, weight="bold"),
+            font=self._f10b,
             text_color=MIL_TAN, corner_radius=4,
             command=lambda p=page: self._navigate(p))
         btn.grid(row=self._sb_row, column=0, sticky="ew", padx=4, pady=1)
@@ -2337,7 +2359,7 @@ class App(ctk.CTk):
         self._page_title_frame.grid_columnconfigure(0, weight=1)
         self._page_title_lbl = ctk.CTkLabel(
             self._page_title_frame, text="",
-            font=ctk.CTkFont(family="Courier New", size=11, weight="bold"),
+            font=self._f11b,
             text_color=MIL_TAN, anchor="w")
         self._page_title_lbl.grid(row=0, column=0, sticky="w", padx=14, pady=7)
 
@@ -2414,13 +2436,13 @@ class App(ctk.CTk):
         bar.grid_rowconfigure(1, weight=1)
         self._status_lbl = ctk.CTkLabel(
             bar, text="[ SYSTEM READY ]  v14.0 — all systems nominal.",
-            font=ctk.CTkFont(family="Courier New", size=10),
+            font=self._f10,
             text_color=MIL_KHAKI, anchor="w")
         self._status_lbl.grid(row=0, column=0, sticky="ew", padx=12, pady=(5, 1))
         # Live elapsed timer — shown during active transfers
         self._elapsed_lbl = ctk.CTkLabel(
             bar, text="",
-            font=ctk.CTkFont(family="Courier New", size=10, weight="bold"),
+            font=self._f10b,
             text_color=MIL_AMBER, anchor="e")
         self._elapsed_lbl.grid(row=0, column=1, sticky="e", padx=(0, 12), pady=(5, 1))
         self._progress = ctk.CTkProgressBar(
@@ -2505,7 +2527,7 @@ class App(ctk.CTk):
         tf = ctk.CTkFrame(self, fg_color=MIL_CARD2, corner_radius=8,
                            border_color=color, border_width=2)
         ctk.CTkLabel(tf, text=f"  {message}  ",
-                     font=ctk.CTkFont(family="Courier New", size=11, weight="bold"),
+                     font=self._f11b,
                      text_color=color
                      ).pack(padx=10, pady=8)
         tf.place(relx=1.0, rely=1.0, anchor="se", x=-12, y=-52)
@@ -2548,21 +2570,21 @@ class App(ctk.CTk):
         ctk.CTkFrame(parent, fg_color=color, height=1
                      ).grid(row=row, column=0, sticky="ew", padx=16, pady=(10, 0))
         ctk.CTkLabel(parent, text=f"  {text}",
-                     font=ctk.CTkFont(family="Courier New", size=10, weight="bold"),
+                     font=self._f10b,
                      text_color=color, anchor="w"
                      ).grid(row=row+1, column=0, sticky="ew", padx=16, pady=(2, 4))
 
     @staticmethod
     def _lbl(parent: ctk.CTkFrame, text: str) -> ctk.CTkLabel:
         return ctk.CTkLabel(parent, text=text,
-                            font=ctk.CTkFont(family="Courier New", size=11, weight="bold"),
+                            font=self._f11b,
                             text_color=MIL_TAN, anchor="w")
 
     def _ent(self, parent: ctk.CTkFrame, ph: str, show: str = "",
              var: ctk.StringVar | None = None) -> ctk.CTkEntry:
         kw: dict = dict(placeholder_text=ph, fg_color=MIL_CARD, border_color=MIL_OLIVE,
                         text_color=MIL_TEXT, placeholder_text_color=MIL_MUTED,
-                        font=ctk.CTkFont(family="Courier New", size=12),
+                        font=self._f12,
                         height=30, show=show)
         if var: kw["textvariable"] = var
         e = ctk.CTkEntry(parent, **kw)
@@ -2639,7 +2661,7 @@ class App(ctk.CTk):
              w: int = 0, h: int = 28, color: str = MIL_OLIVE,
              text_color: str = MIL_TEXT, hover: str = MIL_OLIVE_LT) -> ctk.CTkButton:
         kw: dict = dict(text=text, fg_color=color, hover_color=hover,
-                        font=ctk.CTkFont(family="Courier New", weight="bold"),
+                        font=self._fb,
                         command=command, height=h, text_color=text_color, corner_radius=5)
         if w: kw["width"] = w
         return ctk.CTkButton(parent, **kw)
@@ -2659,13 +2681,30 @@ class App(ctk.CTk):
         self._toast("🎲  Passphrase generated & copied!", MIL_GREEN_LT)
 
     def _pw_row(self, parent: ctk.CTkFrame, ph: str = "Enter passphrase…") -> ctk.CTkEntry:
-        """Returns a passphrase entry in a parent frame, with a 🎲 generator button."""
+        """Passphrase entry + 👁 show/hide toggle + 🎲 generator."""
         parent.grid_columnconfigure(0, weight=1)
         e = self._ent(parent, ph, show="•")
-        e.grid(row=0, column=0, sticky="ew", padx=(0, 4), ipady=2)
+        e.grid(row=0, column=0, sticky="ew", padx=(0, 2), ipady=2)
+
+        # eye toggle — state kept in a single-element list to avoid nonlocal
+        _vis = [False]
+        eye_btn: ctk.CTkButton = self._btn(
+            parent, "SHOW", lambda: None,
+            w=44, h=28, color=MIL_CARD2, text_color=MIL_KHAKI, hover=MIL_OLIVE)
+        eye_btn.grid(row=0, column=1, padx=(0, 2))
+
+        def _toggle_vis(btn: ctk.CTkButton = eye_btn, en: ctk.CTkEntry = e) -> None:
+            _vis[0] = not _vis[0]
+            en.configure(show="" if _vis[0] else "•")
+            btn.configure(
+                text="HIDE" if _vis[0] else "SHOW",
+                text_color=MIL_AMBER if _vis[0] else MIL_KHAKI)
+
+        eye_btn.configure(command=_toggle_vis)
+
         self._btn(parent, "🎲", lambda en=e: self._gen_passphrase(en),
-                  w=30, h=30, color=MIL_CARD2, text_color=MIL_AMBER,
-                  hover=MIL_OLIVE).grid(row=0, column=1)
+                  w=28, h=28, color=MIL_CARD2, text_color=MIL_AMBER,
+                  hover=MIL_OLIVE).grid(row=0, column=2)
         return e
 
     def _op_lock(self, *btns: ctk.CTkButton | None) -> None:
@@ -2711,7 +2750,7 @@ class App(ctk.CTk):
         # File preview info line
         self._file_info_lbl = ctk.CTkLabel(
             sf, text="  ↓  Drag & drop a file onto the window",
-            font=ctk.CTkFont(family="Courier New", size=9),
+            font=self._f9,
             text_color=MIL_MUTED, anchor="w")
         self._file_info_lbl.grid(row=r, column=0, sticky="ew", padx=16); r += 1
 
@@ -2721,7 +2760,7 @@ class App(ctk.CTk):
         ctk.CTkCheckBox(mf,
                         text="  📦  MULTI-FILE  (select multiple files → auto-zip before send)",
                         variable=self._multi_var,
-                        font=ctk.CTkFont(family="Courier New", size=10, weight="bold"),
+                        font=self._f10b,
                         text_color=MIL_TAN, fg_color=MIL_OLIVE,
                         hover_color=MIL_OLIVE_LT, border_color=MIL_OLIVE,
                         command=self._on_multi_toggle,
@@ -2733,7 +2772,7 @@ class App(ctk.CTk):
         ctk.CTkCheckBox(barf,
                         text="  🔥  BURN AFTER READING  (auto-deletes on receiver after 60 s)",
                         variable=self._burn_var,
-                        font=ctk.CTkFont(family="Courier New", size=10, weight="bold"),
+                        font=self._f10b,
                         text_color=MIL_RED_LT, fg_color=MIL_RED,
                         hover_color=MIL_RED_LT, border_color=MIL_RED,
                         ).grid(row=0, column=0, sticky="w")
@@ -2744,7 +2783,7 @@ class App(ctk.CTk):
         # Favorite peers
         fav_f = self._irow(sf, r, pady=(0, 4)); r += 1
         ctk.CTkLabel(fav_f, text="  ★  FAVORITE PEERS:",
-                     font=ctk.CTkFont(family="Courier New", size=10, weight="bold"),
+                     font=self._f10b,
                      text_color=MIL_AMBER, anchor="w"
                      ).grid(row=0, column=0, sticky="w")
         self._fav_var = ctk.StringVar(value="— select saved peer —")
@@ -2753,7 +2792,7 @@ class App(ctk.CTk):
             command=self._on_fav_selected,
             fg_color=MIL_CARD2, button_color=MIL_OLIVE,
             button_hover_color=MIL_OLIVE_LT, text_color=MIL_TAN,
-            font=ctk.CTkFont(family="Courier New", size=11), width=260)
+            font=self._f11, width=260)
         self._fav_menu.grid(row=0, column=1, padx=(8, 0))
         self._rebuild_fav_menu()
 
@@ -2768,7 +2807,7 @@ class App(ctk.CTk):
             command=self._on_lan_peer_selected,
             fg_color=MIL_CARD2, button_color=MIL_OLIVE,
             button_hover_color=MIL_OLIVE_LT, text_color=MIL_TAN,
-            font=ctk.CTkFont(family="Courier New", size=11), width=170)
+            font=self._f11, width=170)
         self._lan_peer_menu.grid(row=0, column=2)
 
         # save as favorite
@@ -2795,11 +2834,11 @@ class App(ctk.CTk):
         self._send_secret.bind("<KeyRelease>",
             lambda e: self._update_strength(self._send_secret, self._send_strength))
         self._send_strength = ctk.CTkLabel(sf, text="", anchor="w",
-            font=ctk.CTkFont(family="Courier New", size=10, weight="bold"))
+            font=self._f10b)
         self._send_strength.grid(row=r, column=0, sticky="ew", padx=18); r += 1
 
         self._sas_label = ctk.CTkLabel(sf, text="", anchor="w",
-            font=ctk.CTkFont(family="Courier New", size=11, weight="bold"),
+            font=self._f11b,
             text_color=MIL_AMBER)
         self._sas_label.grid(row=r, column=0, sticky="ew", padx=16, pady=(4, 0)); r += 1
 
@@ -2826,7 +2865,7 @@ class App(ctk.CTk):
         recent = self._cfg.get("recent_files", [])
         if not recent:
             ctk.CTkLabel(self._recent_frame, text="  No recent files.",
-                         font=ctk.CTkFont(family="Courier New", size=10),
+                         font=self._f10,
                          text_color=MIL_MUTED, anchor="w"
                          ).grid(row=0, column=0, sticky="w", padx=10, pady=4)
             return
@@ -2837,17 +2876,17 @@ class App(ctk.CTk):
             row_f.grid(row=i, column=0, sticky="ew", padx=6, pady=1)
             row_f.grid_columnconfigure(1, weight=1)
             ctk.CTkLabel(row_f, text=f"  {i+1}.",
-                         font=ctk.CTkFont(family="Courier New", size=10),
+                         font=self._f10,
                          text_color=MIL_MUTED, width=24, anchor="w"
                          ).grid(row=0, column=0)
             btn = ctk.CTkButton(row_f, text=pth.name, anchor="w",
                                  fg_color="transparent", hover_color=MIL_CARD2,
-                                 font=ctk.CTkFont(family="Courier New", size=10),
+                                 font=self._f10,
                                  text_color=MIL_TAN, height=26,
                                  command=lambda f=fp: self._load_recent(f))
             btn.grid(row=0, column=1, sticky="ew")
             ctk.CTkLabel(row_f, text=pth.parent.name, width=120,
-                         font=ctk.CTkFont(family="Courier New", size=9),
+                         font=self._f9,
                          text_color=MIL_MUTED, anchor="e"
                          ).grid(row=0, column=2, padx=(0, 4))
 
@@ -2926,7 +2965,7 @@ class App(ctk.CTk):
         info.grid_columnconfigure(0, weight=1); r += 1
         ctk.CTkLabel(info,
                      text=f"  ◈  LOCAL IP:  {_get_local_ip()}   — share with sender",
-                     font=ctk.CTkFont(family="Courier New", size=12, weight="bold"),
+                     font=self._f12b,
                      text_color=MIL_GREEN_LT, anchor="w"
                      ).grid(row=0, column=0, sticky="ew", padx=10, pady=7)
 
@@ -2952,11 +2991,11 @@ class App(ctk.CTk):
         self._recv_secret.bind("<KeyRelease>",
             lambda e: self._update_strength(self._recv_secret, self._recv_strength))
         self._recv_strength = ctk.CTkLabel(sf, text="", anchor="w",
-            font=ctk.CTkFont(family="Courier New", size=10, weight="bold"))
+            font=self._f10b)
         self._recv_strength.grid(row=r, column=0, sticky="ew", padx=18); r += 1
 
         self._recv_sas_label = ctk.CTkLabel(sf, text="", anchor="w",
-            font=ctk.CTkFont(family="Courier New", size=11, weight="bold"),
+            font=self._f11b,
             text_color=MIL_AMBER)
         self._recv_sas_label.grid(row=r, column=0, sticky="ew", padx=16, pady=(4, 0)); r += 1
 
@@ -2967,11 +3006,11 @@ class App(ctk.CTk):
         inv.grid(row=r, column=0, sticky="ew", padx=16, pady=(0, 4))
         inv.grid_columnconfigure(0, weight=1); r += 1
         ctk.CTkLabel(inv, text="  ⊛ INVITE CODE:",
-                     font=ctk.CTkFont(family="Courier New", size=10),
+                     font=self._f10,
                      text_color=MIL_MUTED, anchor="w"
                      ).grid(row=0, column=0, sticky="ew", padx=10, pady=(6, 2))
         self._invite_display = ctk.CTkLabel(inv, text="— press GENERATE —",
-                     font=ctk.CTkFont(family="Courier New", size=11, weight="bold"),
+                     font=self._f11b,
                      text_color=MIL_AMBER, anchor="w", wraplength=650)
         self._invite_display.grid(row=1, column=0, sticky="ew", padx=10, pady=(0, 2))
         ibr = ctk.CTkFrame(inv, fg_color="transparent")
@@ -3007,7 +3046,7 @@ class App(ctk.CTk):
         ban.grid_columnconfigure(0, weight=1); r += 1
         ctk.CTkLabel(ban,
                      text="  ⊕  Global P2P via relay. No port forwarding. Double-encrypted.",
-                     font=ctk.CTkFont(family="Courier New", size=11, weight="bold"),
+                     font=self._f11b,
                      text_color="#7EB8F7", anchor="w"
                      ).grid(row=0, column=0, sticky="ew", padx=10, pady=8)
 
@@ -3027,7 +3066,7 @@ class App(ctk.CTk):
         self._wh_passphrase.bind("<KeyRelease>",
             lambda e: self._update_strength(self._wh_passphrase, self._wh_strength))
         self._wh_strength = ctk.CTkLabel(sf, text="", anchor="w",
-            font=ctk.CTkFont(family="Courier New", size=10, weight="bold"))
+            font=self._f10b)
         self._wh_strength.grid(row=r, column=0, sticky="ew", padx=18); r += 1
 
         self._wh_send_btn = self._btn(sf, "⊕   GENERATE CODE & SEND", self._on_wh_send,
@@ -3039,12 +3078,12 @@ class App(ctk.CTk):
         cf.grid(row=r, column=0, sticky="ew", padx=16, pady=(0, 6))
         cf.grid_columnconfigure(0, weight=1); r += 1
         ctk.CTkLabel(cf, text="  WORMHOLE CODE:",
-                     font=ctk.CTkFont(family="Courier New", size=10),
+                     font=self._f10,
                      text_color=MIL_MUTED, anchor="w"
                      ).grid(row=0, column=0, sticky="ew", padx=10, pady=(6, 2))
         self._wh_code_var = ctk.StringVar(value="—  awaiting send  —")
         ctk.CTkLabel(cf, textvariable=self._wh_code_var,
-                     font=ctk.CTkFont(family="Courier New", size=16, weight="bold"),
+                     font=self._f16b,
                      text_color="#7EB8F7", anchor="center"
                      ).grid(row=1, column=0, sticky="ew", padx=10, pady=(0, 4))
         crw = ctk.CTkFrame(cf, fg_color="transparent")
@@ -3092,7 +3131,7 @@ class App(ctk.CTk):
         ban.grid_columnconfigure(0, weight=1); r += 1
         ctk.CTkLabel(ban,
                      text="  ■  OFFLINE — Encrypt/decrypt files or entire folders. No network.",
-                     font=ctk.CTkFont(family="Courier New", size=11, weight="bold"),
+                     font=self._f11b,
                      text_color=MIL_AMBER, anchor="w"
                      ).grid(row=0, column=0, sticky="ew", padx=10, pady=8)
 
@@ -3118,7 +3157,7 @@ class App(ctk.CTk):
         self._local_secret.bind("<KeyRelease>",
             lambda e: self._update_strength(self._local_secret, self._local_strength))
         self._local_strength = ctk.CTkLabel(sf, text="", anchor="w",
-            font=ctk.CTkFont(family="Courier New", size=10, weight="bold"))
+            font=self._f10b)
         self._local_strength.grid(row=r, column=0, sticky="ew", padx=18); r += 1
 
         hint = ctk.CTkFrame(sf, fg_color=MIL_CARD, corner_radius=5)
@@ -3127,7 +3166,7 @@ class App(ctk.CTk):
         ctk.CTkLabel(hint, text=(
             "  FILE ENCRYPT → adds .fort suffix  |  FILE DECRYPT → removes .fort\n"
             "  FOLDER ENCRYPT → creates .fort archive  |  FOLDER DECRYPT → extracts to subfolder"
-        ), font=ctk.CTkFont(family="Courier New", size=10),
+        ), font=self._f10,
            text_color=MIL_MUTED, anchor="w"
            ).grid(row=0, column=0, sticky="ew", padx=8, pady=5)
 
@@ -3152,7 +3191,7 @@ class App(ctk.CTk):
         p.grid_rowconfigure(3, weight=1)
 
         self._hist_stats_lbl = ctk.CTkLabel(p, text="Loading…",
-            font=ctk.CTkFont(family="Courier New", size=10),
+            font=self._f10,
             text_color=MIL_KHAKI, anchor="w")
         self._hist_stats_lbl.grid(row=0, column=0, sticky="ew", padx=16, pady=(12, 4))
 
@@ -3170,7 +3209,7 @@ class App(ctk.CTk):
             ("TIME", 130), ("DIR", 75), ("FILE", 0), ("SIZE", 80), ("SPEED", 80), ("STATUS", 65)
         ]):
             kw: dict = dict(text=txt,
-                font=ctk.CTkFont(family="Courier New", size=10, weight="bold"),
+                font=self._f10b,
                 text_color=MIL_AMBER, anchor="w")
             if w: kw["width"] = w
             ctk.CTkLabel(hdr, **kw).grid(row=0, column=col, sticky="ew", padx=4, pady=4)
@@ -3209,7 +3248,7 @@ class App(ctk.CTk):
                 (rec.status,                65, sc),
             ]):
                 kw2: dict = dict(text=txt,
-                    font=ctk.CTkFont(family="Courier New", size=10),
+                    font=self._f10,
                     text_color=clr, anchor="w")
                 if w: kw2["width"] = w
                 lbl = ctk.CTkLabel(rf, **kw2)
@@ -3233,7 +3272,7 @@ class App(ctk.CTk):
         p.grid_rowconfigure(2, weight=1)
 
         ctk.CTkLabel(p, text="  ◈  Test connectivity before transfer",
-                     font=ctk.CTkFont(family="Courier New", size=11, weight="bold"),
+                     font=self._f11b,
                      text_color=MIL_AMBER, anchor="w"
                      ).grid(row=0, column=0, sticky="ew", padx=16, pady=(14, 8))
 
@@ -3250,7 +3289,7 @@ class App(ctk.CTk):
                   color=MIL_OLIVE, hover=MIL_OLIVE_LT).grid(row=0, column=2)
 
         self._diag_text = ctk.CTkTextbox(p,
-            font=ctk.CTkFont(family="Courier New", size=11),
+            font=self._f11,
             fg_color=MIL_BG, text_color=MIL_TEXT,
             border_color=MIL_OLIVE, border_width=1)
         self._diag_text.grid(row=2, column=0, sticky="nsew", padx=16, pady=(0, 12))
@@ -3353,7 +3392,7 @@ class App(ctk.CTk):
         ctk.CTkCheckBox(lan_f,
                         text="  Enable LAN Discovery  (UDP beacon port 47474)",
                         variable=self._cfg_lan_var,
-                        font=ctk.CTkFont(family="Courier New", size=11),
+                        font=self._f11,
                         text_color=MIL_TAN, fg_color=MIL_OLIVE,
                         hover_color=MIL_OLIVE_LT, border_color=MIL_OLIVE
                         ).grid(row=0, column=0, sticky="w")
@@ -3365,7 +3404,7 @@ class App(ctk.CTk):
         ctk.CTkLabel(info,
                      text="  Settings are saved to ~/.p2p_fortress.json\n"
                           "  and applied on the next app launch.",
-                     font=ctk.CTkFont(family="Courier New", size=10),
+                     font=self._f10,
                      text_color=MIL_MUTED, anchor="w"
                      ).grid(row=0, column=0, sticky="ew", padx=10, pady=6)
 
@@ -3383,7 +3422,7 @@ class App(ctk.CTk):
         danger.grid_columnconfigure(0, weight=1); r += 1
         ctk.CTkLabel(danger,
                      text="  These actions are irreversible.",
-                     font=ctk.CTkFont(family="Courier New", size=10),
+                     font=self._f10,
                      text_color=MIL_RED_LT, anchor="w"
                      ).grid(row=0, column=0, sticky="ew", padx=10, pady=(8, 2))
         dr = ctk.CTkFrame(danger, fg_color="transparent")
@@ -3450,7 +3489,7 @@ class App(ctk.CTk):
 
         def sec(t, c=MIL_AMBER):
             ctk.CTkLabel(outer, text=t,
-                font=ctk.CTkFont(family="Courier New", size=12, weight="bold"),
+                font=self._f12b,
                 text_color=c, anchor="w"
             ).grid(row=rc[0], column=0, sticky="ew", padx=12, pady=(12, 2)); rc[0] += 1
             ctk.CTkFrame(outer, fg_color=c, height=1
@@ -3458,7 +3497,7 @@ class App(ctk.CTk):
 
         def ln(t, c=MIL_TEXT):
             ctk.CTkLabel(outer, text=t,
-                font=ctk.CTkFont(family="Courier New", size=11),
+                font=self._f11,
                 text_color=c, anchor="w", wraplength=780, justify="left"
             ).grid(row=rc[0], column=0, sticky="ew", padx=20, pady=1); rc[0] += 1
 
@@ -3467,7 +3506,7 @@ class App(ctk.CTk):
             f.grid(row=rc[0], column=0, sticky="ew", padx=12, pady=2)
             f.grid_columnconfigure(0, weight=1); rc[0] += 1
             ctk.CTkLabel(f, text=t,
-                font=ctk.CTkFont(family="Courier New", size=10),
+                font=self._f10,
                 text_color=MIL_KHAKI, anchor="w", wraplength=760, justify="left"
             ).grid(row=0, column=0, sticky="ew", padx=10, pady=4)
 
@@ -3528,13 +3567,13 @@ class App(ctk.CTk):
         tf.grid(row=r, column=0, sticky="ew", padx=12, pady=(10, 6))
         tf.grid_columnconfigure(0, weight=1); r += 1
         ctk.CTkLabel(tf, text="▣  P2P FORTRESS",
-            font=ctk.CTkFont(family="Courier New", size=22, weight="bold"),
+            font=self._f22b,
             text_color=MIL_GREEN_LT).grid(row=0, column=0, pady=(14, 2))
         ctk.CTkLabel(tf, text="Ultra-Secure Peer-to-Peer File Transfer System",
-            font=ctk.CTkFont(family="Courier New", size=12),
+            font=self._f12,
             text_color=MIL_TAN).grid(row=1, column=0)
         ctk.CTkLabel(tf, text="Version 13.0  //  CLASSIFICATION: CRYPTO-GRADE+",
-            font=ctk.CTkFont(family="Courier New", size=10),
+            font=self._f10,
             text_color=MIL_AMBER).grid(row=2, column=0, pady=(2, 14))
 
         df = ctk.CTkFrame(outer, fg_color="#130A00", corner_radius=7,
@@ -3542,19 +3581,19 @@ class App(ctk.CTk):
         df.grid(row=r, column=0, sticky="ew", padx=12, pady=6)
         df.grid_columnconfigure(0, weight=1); r += 1
         ctk.CTkLabel(df, text="// COPYRIGHT & LEGAL NOTICE",
-            font=ctk.CTkFont(family="Courier New", size=10, weight="bold"),
+            font=self._f10b,
             text_color=MIL_AMBER, anchor="w"
         ).grid(row=0, column=0, sticky="ew", padx=12, pady=(10, 4))
         ctk.CTkLabel(df, text=(
             "© 2024 Moshe Pinchasi. All rights reserved.\n\n"
             'This software is provided "as is", without warranty of any kind.\n'
             "Any misuse of this tool for illegal activities is strictly prohibited."
-        ), font=ctk.CTkFont(family="Courier New", size=11),
+        ), font=self._f11,
            text_color=MIL_TAN, justify="left", anchor="w"
         ).grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 12))
 
         ctk.CTkLabel(outer, text="// CRYPTOGRAPHIC STACK",
-            font=ctk.CTkFont(family="Courier New", size=11, weight="bold"),
+            font=self._f11b,
             text_color=MIL_GREEN_LT, anchor="w"
         ).grid(row=r, column=0, sticky="ew", padx=12, pady=(12, 2)); r += 1
         ctk.CTkFrame(outer, fg_color=MIL_GREEN_LT, height=1
@@ -3579,10 +3618,10 @@ class App(ctk.CTk):
             sr.grid(row=r, column=0, sticky="ew", padx=12, pady=1)
             sr.grid_columnconfigure(1, weight=1); r += 1
             ctk.CTkLabel(sr, text=f"  {label}", width=155,
-                font=ctk.CTkFont(family="Courier New", size=10, weight="bold"),
+                font=self._f10b,
                 text_color=color, anchor="w").grid(row=0, column=0, sticky="w", padx=(6,2), pady=4)
             ctk.CTkLabel(sr, text=val,
-                font=ctk.CTkFont(family="Courier New", size=10),
+                font=self._f10,
                 text_color=MIL_KHAKI, anchor="w"
             ).grid(row=0, column=1, sticky="ew", pady=4)
 
@@ -4094,10 +4133,10 @@ class App(ctk.CTk):
         win.title("QR Invite Code"); win.configure(fg_color=MIL_BG); win.geometry("520x540")
         win.grid_columnconfigure(0, weight=1); win.grid_rowconfigure(1, weight=1)
         ctk.CTkLabel(win, text="  Scan to connect:",
-                     font=ctk.CTkFont(family="Courier New", size=12, weight="bold"),
+                     font=self._f12b,
                      text_color=MIL_AMBER
                      ).grid(row=0, column=0, sticky="w", padx=14, pady=(12, 4))
-        tb = ctk.CTkTextbox(win, font=ctk.CTkFont(family="Courier New", size=8),
+        tb = ctk.CTkTextbox(win, font=self._f8,
                              fg_color=MIL_CARD, text_color=MIL_TEXT)
         tb.grid(row=1, column=0, sticky="nsew", padx=14, pady=(0, 14))
         tb.insert("end", qr_str); tb.configure(state="disabled")
