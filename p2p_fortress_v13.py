@@ -2574,8 +2574,7 @@ class App(ctk.CTk):
                      text_color=color, anchor="w"
                      ).grid(row=row+1, column=0, sticky="ew", padx=16, pady=(2, 4))
 
-    @staticmethod
-    def _lbl(parent: ctk.CTkFrame, text: str) -> ctk.CTkLabel:
+    def _lbl(self, parent: ctk.CTkFrame, text: str) -> ctk.CTkLabel:
         return ctk.CTkLabel(parent, text=text,
                             font=self._f11b,
                             text_color=MIL_TAN, anchor="w")
